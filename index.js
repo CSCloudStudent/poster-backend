@@ -1,5 +1,5 @@
 import express from "express";
-const B2 = require('backblaze-b2');
+import B2 from "backblaze-b2";
 
 const app = express();
 app.use(express.json());
@@ -9,16 +9,29 @@ const b2 = new B2({
   applicationKey: process.env.B2_APPLICATION_KEY
 });
 
-await b2.authorize();
-
-app.post("/get-upload-url", async (req, res) => {
+async function startServer() {
   try {
-    const bucketId = process.env.B2_BUCKET_ID;
-    const response = await b2.getUploadUrl({ bucketId });
-    res.json(response.data);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+    await b2.authorize();
+    console.log("Backblaze authorized");
 
-app.listen(10000, () => console.log("Backend running on port 10000"));
+    app.post("/get-upload-url", async (req, res) => {
+      try {
+        const bucketId = process.env.B2_BUCKET_ID;
+        const response = await b2.getUploadUrl({ bucketId });
+        res.json(response.data);
+      } catch (err) {
+        res.status(500).json({ error: err.message });
+      }
+    });
+
+    app.listen(10000, () => {
+      console.log("Backend running on port 10000");
+    });
+
+  } catch (err) {
+    console.error("Failed to authorize Backblaze:", err);
+    process.exit(1);
+  }
+}
+
+startServer();
