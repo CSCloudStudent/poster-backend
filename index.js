@@ -1,5 +1,5 @@
 import express from "express";
-import { B2 } from "b2sdk";
+const B2 = require('backblaze-b2');
 
 const app = express();
 app.use(express.json());
