@@ -24,9 +24,9 @@ async function startServer() {
       }
     });
 
-    app.listen(10000, () => {
-      console.log("Backend running on port 10000");
-    });
+    const PORT = process.env.PORT || 10000;
+app.listen(PORT, () => console.log(`Backend running on port ${PORT}`));
+
 
   } catch (err) {
     console.error("Failed to authorize Backblaze:", err);
