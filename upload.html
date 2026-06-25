@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Student PDF Portal</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #0f172a;
+      color: #e5e7eb;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+    }
+    .container {
+      width: 100%;
+      max-width: 600px;
+      margin: 2rem;
+      background: #020617;
+      border-radius: 12px;
+      padding: 1.5rem 1.75rem 2rem;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+      border: 1px solid #1f2937;
+    }
+    h1 { margin-top: 0; font-size: 1.6rem; }
+    h2 { font-size: 1.1rem; margin-top: 1.5rem; color: #cbd5f5; }
+
+    label {
+      display: block;
+      margin-bottom: 0.25rem;
+      font-size: 0.9rem;
+      color: #9ca3af;
+    }
+    input[type="text"],
+    input[type="password"],
+    input[type="file"] {
+      width: 100%;
+      padding: 0.5rem 0.6rem;
+      margin-bottom: 0.75rem;
+      border-radius: 6px;
+      border: 1px solid #374151;
+      background: #020617;
+      color: #e5e7eb;
+      font-size: 0.95rem;
+    }
+    button {
+      background: #4f46e5;
+      color: white;
+      border: none;
+      padding: 0.55rem 1.1rem;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 0.95rem;
+      font-weight: 500;
+      margin-top: 0.25rem;
+    }
+    button:hover { background: #6366f1; }
+
+    .secondary-btn {
+      background: transparent;
+      border: 1px solid #4b5563;
+      color: #e5e7eb;
+      margin-left: 0.5rem;
+    }
+    .secondary-btn:hover { background: #111827; }
+
+    .file-list { margin-top: 0.5rem; font-size: 0.9rem; }
+    .file-item {
+      padding: 0.4rem 0.5rem;
+      border-radius: 6px;
+      border: 1px solid #111827;
+      margin-bottom: 0.35rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #020617;
+    }
+    .file-item a { color: #93c5fd; text-decoration: none; }
+    .file-item span { font-size: 0.8rem; color: #6b7280; }
+
+    .status { margin-top: 0.5rem; font-size: 0.85rem; color: #9ca3af; }
+    .status.error { color: #fca5a5; }
+    .status.success { color: #bbf7d0; }
+
+    .hidden { display: none; }
+
+    .modal {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.7);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 50;
+    }
+    .modal-content {
+      background: #0f172a;
+      padding: 1.5rem;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 350px;
+      border: 1px solid #1f2937;
+    }
+  </style>
+</head>
+
+<body>
+
+<!-- LOGIN POPUP -->
+<div id="login-popup" class="modal hidden">
+  <div class="modal-content">
+    <h2>Login</h2>
+    <form id="login-form">
+      <label>Email</label>
+      <input id="login-email" type="text" required>
+      <label>Password</label>
+      <input id="login-password" type="password" required>
+      <button type="submit">Login</button>
+      <button type="button" id="close-login" class="secondary-btn">Cancel</button>
+      <div id="login-status" class="status"></div>
+    </form>
+  </div>
+</div>
+
+<!-- SIGNUP POPUP -->
+<div id="signup-popup" class="modal hidden">
+  <div class="modal-content">
+    <h2>Sign Up</h2>
+    <form id="signup-form">
+      <label>Name</label>
+      <input id="signup-name" type="text" required>
+      <label>Email</label>
+      <input id="signup-email" type="text" required>
+      <label>Password</label>
+      <input id="signup-password" type="password" required>
+      <button type="submit">Create Account</button>
+      <button type="button" id="close-signup" class="secondary-btn">Cancel</button>
+      <div id="signup-status" class="status"></div>
+    </form>
+  </div>
+</div>
+
+<div class="container">
+  <h1>Student PDF Portal</h1>
+  <p style="font-size:0.9rem;color:#9ca3af;margin-top:0.25rem;">
+    Upload and view your own PDFs. Each account only sees its own files.
+  </p>
+
+  <button id="open-login" class="secondary-btn">Login</button>
+  <button id="open-signup" class="secondary-btn">Sign Up</button>
+
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:1rem;">
+    <h2 style="margin:0;">My PDFs</h2>
+    <button id="logout-btn" class="secondary-btn" type="button">Log out</button>
+  </div>
+
+  <form id="upload-form" style="margin-top:0.75rem;">
+    <label for="pdf-file">Upload a PDF</label>
+    <input id="pdf-file" name="file" type="file" accept="application/pdf" required />
+    <button type="submit">Upload</button>
+  </form>
+  <div id="upload-status" class="status"></div>
+
+  <div id="file-list" class="file-list"></div>
+</div>
+
+<script type="module">
+import {
+  Client,
+  Account,
+  Databases,
+  Query,
+  ID
+} from "https://cdn.jsdelivr.net/npm/appwrite@26.0.0/+esm";
+
+// ====== CONFIG (YOU FILL THESE) ======
+const PROJECT_ID = "69b80feb0023dc924bab";
+const DATABASE_ID = "6a3b5f9b0006125192b8";
+const COLLECTION_ID = "212321hdhdsAhysasaq12872d";
+
+const API_UPLOAD_URL = "https://your-backend-url.com/upload";
+
+// ====== APPWRITE CLIENT ======
+const client = new Client()
+  .setEndpoint("https://cloud.appwrite.io/v1")
+  .setProject(PROJECT_ID);
+
+const account = new Account(client);
+const databases = new Databases(client);
+
+let currentUser = null;
+
+const loginPopup = document.getElementById("login-popup");
+const signupPopup = document.getElementById("signup-popup");
+const fileList = document.getElementById("file-list");
+
+document.getElementById("open-login").onclick = () =>
+  loginPopup.classList.remove("hidden");
+
+document.getElementById("close-login").onclick = () =>
+  loginPopup.classList.add("hidden");
+
+document.getElementById("open-signup").onclick = () =>
+  signupPopup.classList.remove("hidden");
+
+document.getElementById("close-signup").onclick = () =>
+  signupPopup.classList.add("hidden");
+
+// ====== AUTO LOGIN (SESSION CHECK) ======
+async function checkAutoLogin() {
+  try {
+    currentUser = await account.get();
+    loadMyFiles();
+  } catch {
+    currentUser = null;
+  }
+}
+checkAutoLogin();
+</script>
+
+</body>
+</html>
